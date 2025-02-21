@@ -1,0 +1,100 @@
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Project</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <script type="module">
+
+import * as THREE from 'three';
+
+// Set up scene, camera, and renderer
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// Add lighting
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(5, 5, 5).normalize();
+scene.add(light);
+
+// Position the camera
+camera.position.set(0, 0, 5);
+
+// Get the camera feed
+navigator.mediaDevices.getUserMedia({ video: true })
+  .then((stream) => {
+    const video = document.createElement('video');
+    video.srcObject = stream;
+    video.play();
+
+    // Create a texture from the video feed
+    const videoTexture = new THREE.VideoTexture(video);
+    videoTexture.minFilter = THREE.LinearFilter;
+    videoTexture.magFilter = THREE.LinearFilter;
+    videoTexture.format = THREE.RGBFormat;
+
+    // Create a plane to display the video feed
+    const geometry = new THREE.PlaneGeometry(5, 5);
+    const material = new THREE.MeshBasicMaterial({ map: videoTexture });
+    const videoPlane = new THREE.Mesh(geometry, material);
+    scene.add(videoPlane);
+  })
+  .catch((error) => {
+    console.error('Error accessing camera:', error);
+  });
+
+  // Load the 360 video
+const video = document.createElement('video');
+video.src = 'LA_Equirectangular_VR2_Output.mp4';
+video.loop = true;
+video.muted = true;
+video.play();
+
+const videoTexture = new THREE.VideoTexture(video);
+videoTexture.minFilter = THREE.LinearFilter;
+videoTexture.magFilter = THREE.LinearFilter;
+videoTexture.format = THREE.RGBFormat;
+
+// Create a sphere to display the 360 video
+const geometry = new THREE.SphereGeometry(500, 60, 40);
+geometry.scale(-1, 1, 1); // Invert the sphere to display the video inside
+const material = new THREE.MeshBasicMaterial({ map: videoTexture });
+const sphere = new THREE.Mesh(geometry, material);
+scene.add(sphere);
+
+// Add a portal effect (e.g., a glowing ring)
+const portalGeometry = new THREE.RingGeometry(1, 1.2, 32);
+const portalMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
+const portal = new THREE.Mesh(portalGeometry, portalMaterial);
+portal.position.set(0, 0, -10);
+scene.add(portal);
+
+// Detect tap to place the portal
+window.addEventListener('click', () => {
+  // Animate the portal to expand and fill the screen
+  new TWEEN.Tween(portal.scale)
+    .to({ x: 100, y: 100, z: 100 }, 1500)
+    .easing(TWEEN.Easing.Elastic.Out)
+    .start();
+
+  // Hide the portal after the animation
+  setTimeout(() => {
+    portal.visible = false;
+  }, 1500);
+});
+
+
+function animate() {
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+  TWEEN.update(); // Update animations
+}
+animate();
+    
+    </script>
+</body>
